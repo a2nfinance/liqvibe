@@ -7,15 +7,16 @@ dotenv.config();
 const prover = new Prover('localhost:33247');
 const brevis = new Brevis('appsdkv2.brevis.network:9094');
 
-const mainetProvider = new ethers.providers.JsonRpcProvider("https://eth.llamarpc.com");
-const testnetProvider = new ethers.providers.JsonRpcProvider("https://1rpc.io/sepolia");
-const usdtWethPancakeV3PoolAddress = "0x1ac1a8feaaea1900c4166deeed0c11cc10669d36";
-const brevisRequestContractAddress = "0x841ce48F9446C8E281D3F1444cB859b4A6D0738C"
+const mainetProvider = new ethers.providers.JsonRpcProvider("https://bsc-dataseed.binance.org/");
+const testnetProvider = new ethers.providers.JsonRpcProvider("https://bsc-testnet-dataseed.bnbchain.org");
+const usdcWBNBPancakeV3PoolAddress = "0xf2688fb5b81049dfb7703ada5e770543770612c4";
+const brevisRequestContractAddress = "0xF7E9CB6b7A157c14BCB6E6bcf63c1C7c92E952f5"
 const brevisRequestContract = new ethers.Contract(brevisRequestContractAddress, brevisRequestJsonABI, testnetProvider);
 
-const mainnetChainId = 1;
-const testnetChainId = 11155111;
-const numberOfDataItems = 5;
+const mainnetChainId = 56;
+const testnetChainId = 97;
+const numberOfDataItems = 50;
+const step = 10;
 const callbackHookAddress = "";
 
 const accountPrivateKey = process.env.ACCOUNT_PRIVATE_KEY;
@@ -40,9 +41,9 @@ const getDataAtBlockNumber = async (blockNumber: number, contractAddress: string
 }
 
 const getDataList = async (numberOfItem: number, startingBlockNumber: number, contractAddress: string, index: number, provider: ethers.providers.JsonRpcProvider) => {
-    var list = []
+    let list = []
 
-    var currentBlock = startingBlockNumber;
+    let currentBlock = startingBlockNumber;
 
     // repeat until we meet the requested data points
     while (list.length < numberOfItem) {
@@ -50,10 +51,9 @@ const getDataList = async (numberOfItem: number, startingBlockNumber: number, co
         const item = await getDataAtBlockNumber(currentBlock, contractAddress, index, provider);
         // append new item
         list.push(item)
-        // move to next block
-        currentBlock--;
+        // move to previous block with step.
+        currentBlock = currentBlock - step;
     }
-    console.log("List of storage data:", list);
     return list;
 }
 
@@ -77,7 +77,7 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
     const storageDataList = await getDataList(
         numberOfDataItems,
         latestBlock - 1,
-        usdtWethPancakeV3PoolAddress,
+        usdcWBNBPancakeV3PoolAddress,
         0,
         provider
     )
@@ -141,7 +141,7 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
 async function main() {
     let latestBlock = await mainetProvider.getBlockNumber();
     console.log(latestBlock);
-    let dataList = await getDataList(numberOfDataItems, latestBlock - 1, usdtWethPancakeV3PoolAddress, 0, mainetProvider);
+    let dataList = await getDataList(numberOfDataItems, latestBlock - 1, usdcWBNBPancakeV3PoolAddress, 0, mainetProvider);
 }
 
 main();

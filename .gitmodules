@@ -1,0 +1,6 @@
+[submodule "brevis-integration/contracts/lib/Solidity-RLP"]
+	path = brevis-integration/contracts/lib/Solidity-RLP
+	url = https://github.com/hamdiallam/Solidity-RLP
+[submodule "brevis-integration/contracts/lib/solidity-rlp"]
+	path = brevis-integration/contracts/lib/solidity-rlp
+	url = https://github.com/hamdiallam/Solidity-RLP
