@@ -1,0 +1,13 @@
+[profile.default]
+src = 'src'
+out = 'foundry-out'
+libs = ["lib"]
+solc_version = '0.8.26'
+evm_version = 'cancun'
+via_ir = true
+
+[rpc_endpoints]
+bsc-testnet = "${BSC_TESTNET_RPC_URL}"
+
+[etherscan]
+bsc-testnet = { key = "${BSCSCAN_API_KEY}" }
