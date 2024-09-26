@@ -9,7 +9,7 @@ import (
 type AppCircuit struct{}
 
 func (c *AppCircuit) Allocate() (maxReceipts, maxStorage, maxTransactions int) {
-	return 0, 100, 0
+	return 0, 400, 0
 }
 
 func (c *AppCircuit) Define(api *sdk.CircuitAPI, in sdk.DataInput) error {
@@ -57,21 +57,11 @@ func (c *AppCircuit) Define(api *sdk.CircuitAPI, in sdk.DataInput) error {
 	// Calculate sigma**2
 	squareSigma, _ := uint248.Div(sum, sdk.ConstUint248(count))
 	sigma := uint248.Sqrt(squareSigma)
-	// Using the concept of Bollinger band:
-	// Bollinger Band Upper = SMA (Simple Moving Average) + 2 * Standard Deviation.
-	// Bollinger Band Lower = SMA - 2 * Standard Deviation.
-
-	// limited lower price: mean - 2*sigma
-	lowerPrice := uint248.Sub(mean, uint248.Mul(sigma, sdk.ConstUint248(2)))
-	api.OutputUint(64, lowerPrice)
-	fmt.Println("Lower price:", lowerPrice)
-	// limited upper price: mean  + 2*sigma
-	upperPrice := uint248.Add(mean, uint248.Mul(sigma, sdk.ConstUint248(2)))
-	api.OutputUint(64, upperPrice)
-	fmt.Println("Upper price:", upperPrice)
+	api.OutputUint(248, mean)
+	fmt.Println("Mean:", mean)
 	// Sigma
-	api.OutputUint(64, sigma)
-	fmt.Println("Upper price:", sigma)
+	api.OutputUint(248, sigma)
+	fmt.Println("Sigma:", sigma)
 	return nil
 }
 
