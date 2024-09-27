@@ -71,7 +71,7 @@ contract CLVolatilePeriodRewardHookTest is Test, CLTestUtils {
             keccak256(abi.encodePacked(mean, sigma)),
             VK_HASH
         );
-        hook.callback(bytes32(0), abi.encodePacked(mean, sigma));
+        hook.brevisCallback(VK_HASH, abi.encodePacked(mean, sigma));
         assertEq(hook.mean(), mean);
         assertEq(hook.sigma(), sigma);
         MockERC20(Currency.unwrap(currency0)).mint(address(this), 1 ether);

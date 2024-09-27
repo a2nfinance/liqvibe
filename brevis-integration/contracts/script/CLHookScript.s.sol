@@ -13,7 +13,7 @@ contract CLHookScript is Script {
 
         CLVolatilePeriodRewardHook hook = new CLVolatilePeriodRewardHook(
             ICLPoolManager(0x969D90aC74A1a5228b66440f8C8326a8dA47A5F9),
-            address(0x2241C52472862038dFFdAb38b88410CAC2685D15),
+            address(0xF7E9CB6b7A157c14BCB6E6bcf63c1C7c92E952f5),
             "LV Reward Token",
             "LVRT",
             10 ** 13,
