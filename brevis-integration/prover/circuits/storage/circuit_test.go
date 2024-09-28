@@ -1,4 +1,4 @@
-package volatile
+package volatile_storage
 
 import (
 	"math/big"

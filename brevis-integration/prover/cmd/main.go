@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	volatile "liqvibe-prover/circuits"
+	volatile_event "liqvibe-prover/circuits/event"
 	"os"
 
 	"github.com/brevis-network/brevis-sdk/sdk/prover"
@@ -15,7 +15,7 @@ var port = flag.Uint("port", 33247, "the port to start the service at")
 func main() {
 	flag.Parse()
 
-	proverService, err := prover.NewService(&volatile.AppCircuit{}, prover.ServiceConfig{
+	proverService, err := prover.NewService(&volatile_event.AppCircuit{}, prover.ServiceConfig{
 		SetupDir: "$HOME/circuitOut",
 		SrsDir:   "$HOME/kzgsrs",
 	})
