@@ -1,31 +1,42 @@
-import { Brevis, Prover, ProofRequest, StorageData, ErrCode } from 'brevis-sdk-typescript';
+import { Brevis, ErrCode, ProofRequest, Prover, StorageData } from 'brevis-sdk-typescript';
+import dotenv from "dotenv";
 import { ethers, Wallet } from 'ethers';
 import brevisRequestJsonABI from "./abis/brevisRequest.json";
-import dotenv from "dotenv"
 dotenv.config();
 
 const prover = new Prover('localhost:33247');
 const brevis = new Brevis('appsdkv2.brevis.network:9094');
 
-// const mainetProvider = new ethers.providers.JsonRpcProvider("https://bsc-dataseed1.binance.org/");
-const mainetProvider = new ethers.providers.JsonRpcProvider("https://eth.llamarpc.com");
-const testnetProvider = new ethers.providers.JsonRpcProvider("https://rpc.sepolia.org");
-// const usdcWBNBPancakeV3PoolAddress = "0xf2688fb5b81049dfb7703ada5e770543770612c4";
-const tokenPairPancakeV3PoolAddress = "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640";
+// Ether mainnet
+// const mainetProvider = new ethers.providers.JsonRpcProvider("https://eth.llamarpc.com");
+// const testnetProvider = new ethers.providers.JsonRpcProvider("https://rpc.sepolia.org");
+// const tokenPairPancakeV3PoolAddress = "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640";
 // const usdcWBNBPancakeV3PoolAddress = "0x35148b7baf354585a8f3283908bAECf9d14e24b6";
-const brevisRequestContractAddress = "0xF7E9CB6b7A157c14BCB6E6bcf63c1C7c92E952f5";
 
-const accountPrivateKey = process.env.ACCOUNT_PRIVATE_KEY;
+// BSC mainnet
+// const mainetProvider = new ethers.providers.JsonRpcProvider("https://bsc-dataseed1.binance.org/");
+// const tokenPairPancakeV3PoolAddress = "0x85FAac652b707FDf6907EF726751087F9E0b6687";
+// const mainnetChainId = 56;
 
+// BSC testnet
+const testnetProvider = new ethers.providers.JsonRpcProvider("https://bsc-testnet.public.blastapi.io");
+const tokenPairPancakeV3PoolAddress = "0x35148b7baf354585a8f3283908bAECf9d14e24b6";
+const testnetChainId = 97;
+
+// Contract addresses
+const brevisRequestContractAddress = "0xF7E9CB6b7A157c14BCB6E6bcf63c1C7c92E952f5"; // BrevisRequest contract on BSC testnet
+const callbackHookAddress = "0x5Df37c7f0d9a95641Ec9C39c3874F2F279f0F310"; // CLVolatilePeriodRewardHook
+
+const accountPrivateKey = process.env.ACCOUNT_PRIVATE_KEY; // Your account private key for  calling the sendRequest function of BrevisRequest contract
+
+// Init read and write contract
 const wallet = new Wallet(accountPrivateKey!, testnetProvider);
-const brevisRequestContract = new ethers.Contract(brevisRequestContractAddress, brevisRequestJsonABI, testnetProvider);
-const writeContract = brevisRequestContract.connect(wallet);
+const brevisRequestReadContract = new ethers.Contract(brevisRequestContractAddress, brevisRequestJsonABI, testnetProvider);
+const brevisRequestWriteContract = brevisRequestReadContract.connect(wallet);
 
-const mainnetChainId = 1;
-const testnetChainId = 11155111;
-const numberOfDataItems = 10;
-const step = 20;
-const callbackHookAddress = "0xb658B88DB306B7E8F8C22eC09F05f8aB3453bDc3";
+// Getting storage data settings.
+const numberOfDataItems = 2;
+const step = 5;
 
 
 interface SubmitResponse {
@@ -34,74 +45,63 @@ interface SubmitResponse {
 }
 
 async function getAccount() {
-    // get the sender address
     let address = await wallet.getAddress();
     return address;
 }
 
-function sleep(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+async function callSendRequest(provider: ethers.providers.JsonRpcProvider, brevisRes: SubmitResponse, refundee: string, zkMode: number) {
+    let nonce = await wallet.getTransactionCount();
+    const txUnsigned = await brevisRequestWriteContract.sendRequest(
+        brevisRes.queryKey.query_hash,
+        brevisRes.queryKey.nonce,
+        refundee,
+        [
+            callbackHookAddress,
+            parseInt(brevisRes.fee)
+        ],
+        zkMode,
+        {
+            value: ethers.utils.parseEther("0.0001"),
+            gasLimit: 20000000,
+            gasPrice: (await provider.getFeeData()).gasPrice,
+            nonce: nonce
+        }
+    );
+
+    let tx = await txUnsigned.wait();
+    if (tx.status) {
+        console.log("Send request success:", tx.transactionHash);
+    } else {
+        console.log("Send request fail:", tx.transactionHash);
+    }
 }
-// function formatBrevisData(brevisRes: SubmitResponse, refundee: string, callback: string){
-//     // encode data to submit on-chain
-//     const data = brevisRequestContract.methods.sendRequest(
-//         brevisRes.brevisId, refundee, callback
-//     ).encodeABI();
-//     return data
-// }
-
-// async function sendTransaction(from: string, to: string, givenData: string, privKey: string){
-//     // sign the transaction
-//     const wallet = new Wallet(privKey, testnetProvider);
-//     // var signedTx = await wallet.signTransaction(
-//     //     {
-//     //         from: from,
-//     //         to: to,
-//     //         value: 0,
-//     //         maxFeePerGas: 3000000000,
-//     //         maxPriorityFeePerGas: 2000000000,
-//     //         data: givenData
-//     //     });
-
-//     // send it
-//     var receipt = await wallet.sendTransaction({
-//         from: from,
-//         to: to,
-//         value: 0,
-//         maxFeePerGas: 3000000000,
-//         maxPriorityFeePerGas: 2000000000,
-//         data: givenData
-//     });
-
-//     console.log(receipt);
-// }
 
 const getDataAtBlockNumber = async (blockNumber: number, contractAddress: string, storageIndex: number, provider: ethers.providers.JsonRpcProvider) => {
+    // Use PancakeSwap Pool V3 smart contract.
+    // Storage slot is 0.
+    // To understand a storage layout of the pool V3 contract, see this link:
+    // https://explorer.sim.io/eth/20846645/0x6ca298d2983ab03aa1da7679389d955a4efee15c/slot0#map
     const storageVal = await provider.getStorageAt(contractAddress, storageIndex, blockNumber);
-
     const storageData = new StorageData({
         block_num: blockNumber,
         address: contractAddress,
-        slot: '0x0000000000000000000000000000000000000000000000000000000000000000',
+        slot: "0x0000000000000000000000000000000000000000000000000000000000000000",
         value: storageVal
     })
+    // Storage value at a storage slot.
     console.log(blockNumber, storageVal)
-
     return storageData
 }
 
 const getDataList = async (numberOfItem: number, startingBlockNumber: number, contractAddress: string, index: number, provider: ethers.providers.JsonRpcProvider) => {
     let list = []
-
     let currentBlock = startingBlockNumber;
-
-    // repeat until we meet the requested data points
+    // Get all data points.
     while (list.length < numberOfItem) {
-        // fetch brevis structured data
+        // Brevis StorageData.
         const item = await getDataAtBlockNumber(currentBlock, contractAddress, index, provider);
-        // append new item
         list.push(item)
-        // move to previous block with step.
+        // Move to previous block with a intermittent step.
         currentBlock = currentBlock - step;
     }
     return list;
@@ -109,13 +109,20 @@ const getDataList = async (numberOfItem: number, startingBlockNumber: number, co
 
 
 const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: Prover, brevis: Brevis) => {
-
+    // Use developer account as refundee account.
+    // You can change this here.
+    let refundee = await getAccount();
     const proofReq = new ProofRequest();
+    // Brevis service gateway can throw some errors when you submit a proof,
+    // please adjust blocknumber carefully.
+    // Common errors: 
+    // - invalid Storage Slot info
+    // - unsupported blocknumber
+    console.log("Step 1: Get history of the storage value at slot 0.")
     let latestBlock = await provider.getBlockNumber();
-    console.log(latestBlock);
     const storageDataList = await getDataList(
         numberOfDataItems,
-        latestBlock - 1,
+        latestBlock,
         tokenPairPancakeV3PoolAddress,
         0,
         provider
@@ -126,11 +133,10 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
     }
 
     try {
-
-        console.log("going to prove")
+        console.log("Step 2: Going to prove")
         const proofRes = await prover.prove(proofReq);
-        console.log(proofRes.proof);
-        // error handling
+
+        // Checking errors after calling the prover service (localhost:33247)
         if (proofRes.has_err) {
             const err = proofRes.err;
             switch (err.code) {
@@ -149,80 +155,38 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
             return;
         }
 
-        // console.log('proof id', proveRes.proof_id);
-        // const prepRes = await brevis.prepareQuery(proofReq, proveRes.circuit_info, mainnetChainId, testnetChainId, 1, "", callbackHookAddress)
-        // console.log('brevis query key', JSON.stringify(prepRes.query_key));
+        console.log("Step 3: Submit proof to the Brevis service.");
 
-        // let proof = '';
-        // for (let i = 0; i < 100; i++) {
-        //     const getProofRes = await prover.getProof(proveRes.proof_id);
-        //     if (getProofRes.has_err) {
-        //         console.error(proveRes.err.msg);
-        //         return;
-        //     }
-        //     if (getProofRes.proof) {
-        //         proof = getProofRes.proof;
-        //         console.log('proof', proof);
-        //         break;
-        //     }
-        //     console.log('waiting for proof...');
-        //     await sleep(3000);
-        // }
+        // 0: ZK-MODE
+        // 1: OP-MODE
+        // If you select zkMode = 1, please update your hook smart contracts by calling setBrevisOpConfig.
+        // _challengeWindow: 0: POS (proof of stake), 2**64 - 1: disable optimistic result.
+        // _sigOption: bit 0 is bvn, bit 1 is avs.
+        let zkMode = 0;
+        const brevisRes: SubmitResponse = await brevis.submit(
+            proofReq,
+            proofRes,
+            testnetChainId,
+            testnetChainId,
+            // ZK-MODE
+            zkMode,
+            // No need API key for BSC testnet.
+            "",
+            // You hook callback address
+            callbackHookAddress
+        );
 
-        // await brevis.submitProof(prepRes.query_key, testnetChainId, proof);
-        // console.log('proof submitted to brevis');
-        // const brevisRes: SubmitResponse = await brevis.submit(
-        //     proofReq,
-        //     proofRes,
-        //     mainnetChainId,
-        //     testnetChainId,
-        //     // ZK-MODE
-        //     0,
-        //     // TESTNET so api key is null
-        //     "",
-        //     ""
-        // );
-        // console.log('brevis res', brevisRes);
-        // const refundee = await getAccount();
-
-        // let res = await brevisRequestContract.requests("0x222764fc65947827559bfb2a486e07356e1b71b173f0c010dfe04fd72cd94d6c");
-        // console.log(res);
-        // let sendReq = await writeContract.sendRequest(
-        //     "0x222764fc65947827559bfb2a486e07356e1b71b173f0c010dfe04fd72cd94d6c",
-        //     1727380202,
-        //     refundee,
-        //     [
-        //         callbackHookAddress,
-        //         200000
-
-        //     ],
-        //     1,
-        //     {
-        //         value: ethers.utils.parseEther("0.0001")
-        //     }
-
-        // );
-        // console.log(sendReq);
-        // const receipt = await sendReq.wait();
-        // let tx = await wallet.sendTransaction({
-        //     from: refundee,
-        //     chainId: 97,
-        //     to: brevisRequestContractAddress,
-        //     data: sendReq.data,
-        //     // maxFeePerGas: 3000000000,
-        //     // maxPriorityFeePerGas: 2000000000,
-        //     value: 0,
-        //     // nonce: 3
-        // })
-        // console.log(tx);
-        // var brevisDataToSend = (formatBrevisData(brevisRes, refundee, callbackHookAddress))
-        // console.log(refundee, brevisRequestContractAddress, brevisDataToSend, )
-
-        // await sendTransaction(refundee, brevisRequestContractAddress, brevisDataToSend, accountPrivateKey!)
-        // console.log("Send Request success:", receipt);
+        console.log("Step 4: Pay for sending request");
+        // Pay 0.0001 main token to fullfilled the request.
+        await callSendRequest(provider, brevisRes, refundee, zkMode);
+        // Waiting for the result
+        // The system do two steps:
+        // - Checking sendRequest function is called.
+        // - Waiting for the final TX. If there is no final transaction found, please contact Brevis on Brevis' telegram channel.
         let waitRes = await brevis.wait(brevisRes.queryKey, testnetChainId);
         if (waitRes.success) {
-            console.log('final tx', waitRes.tx);
+            console.log('Brevis res', brevisRes);
+            console.log('Final tx', waitRes.tx);
         }
     } catch (err) {
         console.error(err);
@@ -230,12 +194,16 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
 }
 
 
-async function main() {
-    // let latestBlock = await mainetProvider.getBlockNumber();
-    // console.log(latestBlock);
-    // let dataList = await getDataList(numberOfDataItems, latestBlock - 1, usdcWBNBPancakeV3PoolAddress, 0, mainetProvider);
-    sendRequest(mainetProvider, prover, brevis);
+async function main(useLoop: boolean) {
+    if (useLoop) {
+        while (1) {
+            await sendRequest(testnetProvider, prover, brevis)
+            // Next process will do after 10 minutes.
+            await new Promise(r => setTimeout(r, 10 * 60 * 1000));
+        }
+    }
+    sendRequest(testnetProvider, prover, brevis);
 
 }
 
-main();
+main(false);
