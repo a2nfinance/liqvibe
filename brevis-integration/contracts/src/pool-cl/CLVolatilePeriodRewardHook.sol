@@ -14,7 +14,6 @@ import "../framework/BrevisApp.sol";
 import "../interface/IBrevisProof.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import {console} from "forge-std/console.sol";
 
 /// @notice CLCounterHook is a contract that counts the number of times a hook is called
 /// @dev note the code is not production ready, it is only to share how a hook looks like
@@ -89,7 +88,7 @@ contract CLVolatilePeriodRewardHook is CLBaseHook, BrevisApp, Ownable, ERC20 {
         BalanceDelta delta,
         bytes calldata hookData
     ) external override poolManagerOnly returns (bytes4, BalanceDelta) {
-        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(key.toId());
+        (uint160 sqrtPriceX96, , , ) = poolManager.getSlot0(key.toId());
 
         uint256 deltaAmount0 = uint256(int256(-delta.amount0()));
         _assignPoints(sender, deltaAmount0, uint256(sqrtPriceX96));
@@ -117,7 +116,10 @@ contract CLVolatilePeriodRewardHook is CLBaseHook, BrevisApp, Ownable, ERC20 {
     // handle optimistic proof result.
     // This example handles optimistic result in the same way as handling zk results,
     // your app can choose to do differently.
-    function handleOpProofResult(bytes32 _vkHash, bytes calldata _circuitOutput) internal override {
+    function handleOpProofResult(
+        bytes32 _vkHash,
+        bytes calldata _circuitOutput
+    ) internal override {
         handleProofResult(_vkHash, _circuitOutput);
     }
 
@@ -127,32 +129,36 @@ contract CLVolatilePeriodRewardHook is CLBaseHook, BrevisApp, Ownable, ERC20 {
         uint256 sqrtPriceX96
     ) internal {
         uint256 rewardPoints = 0;
-        uint256 absOfPriceSubMean = _abs(sqrtPriceX96, mean);
-        // console.log("SQRTPRICEX96:%d, MEAN: %d", sqrtPriceX96, mean);
-        // Average volatile: sqrtPriceX96 is in two limited bands.
-        // rewardPoints = baseRewardPoints + alpha * sqrt(delta) * (|price - mean| / sigma)
-        if (
-            sqrtPriceX96 <= (mean + 2 * sigma) &&
-            sqrtPriceX96 >= (mean - 2 * sigma)
-        ) {
-            rewardPoints =
-                baseRewardPoints +
-                (alpha0 *
-                    _sqrt(deltaAmount0) *
-                    ((absOfPriceSubMean * DENOMINATOR) / sigma)) /
-                (DENOMINATOR * DENOMINATOR);
-            // console.log("Calculated params:%d %d", _sqrt(deltaAmount0), (absOfPriceSubMean * DENOMINATOR) / sigma);
+        if (sigma == 0) {
+            rewardPoints = baseRewardPoints;
         } else {
-            // High volatile: sqrtPriceX96 is out out two bands
-            rewardPoints =
-                baseRewardPoints +
-                (alpha1 *
-                    _sqrt(deltaAmount0) *
-                    ((absOfPriceSubMean * DENOMINATOR) / sigma)) /
-                (DENOMINATOR * DENOMINATOR);
-            //  console.log("Calculated params:%d %d", _sqrt(deltaAmount0), (absOfPriceSubMean * DENOMINATOR) / sigma);
+            uint256 absOfPriceSubMean = _abs(sqrtPriceX96, mean);
+            // console.log("SQRTPRICEX96:%d, MEAN: %d", sqrtPriceX96, mean);
+            // Average volatile: sqrtPriceX96 is in two limited bands.
+            // rewardPoints = baseRewardPoints + alpha * sqrt(delta) * (|price - mean| / sigma)
+            if (
+                sqrtPriceX96 <= (mean + 2 * sigma) &&
+                sqrtPriceX96 >= (mean - 2 * sigma)
+            ) {
+                rewardPoints =
+                    baseRewardPoints +
+                    (alpha0 *
+                        _sqrt(deltaAmount0) *
+                        ((absOfPriceSubMean * DENOMINATOR) / sigma)) /
+                    (DENOMINATOR * DENOMINATOR);
+                // console.log("Calculated params:%d %d", _sqrt(deltaAmount0), (absOfPriceSubMean * DENOMINATOR) / sigma);
+            } else {
+                // High volatile: sqrtPriceX96 is out out two bands
+                rewardPoints =
+                    baseRewardPoints +
+                    (alpha1 *
+                        _sqrt(deltaAmount0) *
+                        ((absOfPriceSubMean * DENOMINATOR) / sigma)) /
+                    (DENOMINATOR * DENOMINATOR);
+                //  console.log("Calculated params:%d %d", _sqrt(deltaAmount0), (absOfPriceSubMean * DENOMINATOR) / sigma);
+            }
         }
-       
+
         if (rewardPoints > 0) {
             // console.log("Calculated reward points:%d", rewardPoints);
             // console.log("Sender %s:", sender);
@@ -204,13 +210,21 @@ contract CLVolatilePeriodRewardHook is CLBaseHook, BrevisApp, Ownable, ERC20 {
         }
     }
 
-
     /**
      * @notice config params to handle optimitic proof result
      * @param _challengeWindow The challenge window to accept optimistic result. 0: POS, maxInt: disable optimistic result
      * @param _sigOption bitmap to express expected sigs: bit 0 is bvn, bit 1 is avs
      */
-    function setBrevisOpConfig(uint64 _challengeWindow, uint8 _sigOption) external onlyOwner {
+    function setBrevisOpConfig(
+        uint64 _challengeWindow,
+        uint8 _sigOption
+    ) external onlyOwner {
         brevisOpConfig = BrevisOpConfig(_challengeWindow, _sigOption);
+    }
+
+    // Init mean & sigma of sqrtPriceX96
+    function initMeanSigma(uint256 _mean, uint256 _sigma) external onlyOwner {
+        mean = mean;
+        _sigma = sigma;
     }
 }

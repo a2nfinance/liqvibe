@@ -30,22 +30,26 @@ contract CLVolatilePeriodRewardHookTest is Test, CLTestUtils {
         0x179a48b8a2a08b246cd51cb7b78143db774a83ff75fad0d39cf0445e16773426;
 
     MockBrevisProof private brevisProofMock;
+
     function setUp() public {
         (currency0, currency1) = deployContractsWithTokens();
         brevisProofMock = new MockBrevisProof();
         hook = new CLVolatilePeriodRewardHook(
             poolManager,
             address(brevisProofMock),
-            "test",
-            "TEST",
-            10 ** 15,
-            250,
-            350
+            "LV Reward Token",
+            "LVRT",
+            10 ** 13,
+            2500,
+            3500
         );
 
         hook.setVkHash(VK_HASH);
-        console.logBytes32(bytes32(uint256(hook.getHooksRegistrationBitmap()))
-                .setTickSpacing(10));
+        console.logBytes32(
+            bytes32(uint256(hook.getHooksRegistrationBitmap())).setTickSpacing(
+                10
+            )
+        );
         // create the pool key
         key = PoolKey({
             currency0: currency0,
@@ -57,7 +61,6 @@ contract CLVolatilePeriodRewardHookTest is Test, CLTestUtils {
             parameters: bytes32(uint256(hook.getHooksRegistrationBitmap()))
                 .setTickSpacing(10)
         });
-       
         // initialize pool at 1:1 price point (assume stablecoin pair)
         poolManager.initialize(key, Constants.SQRT_RATIO_1_1, new bytes(0));
     }
@@ -78,33 +81,15 @@ contract CLVolatilePeriodRewardHookTest is Test, CLTestUtils {
         MockERC20(Currency.unwrap(currency1)).mint(address(this), 1 ether);
         addLiquidity(key, 1 ether, 1 ether, -60, 60, address(this));
 
-        
         // Sender: 0xF62849F9A0B5Bf2913b396098F7c7019b51A820a
         // Address(This): 0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496
-    
-        uint256 rewardPoints = hook.balanceOf(address(this));
+        uint256 rewardPoints = hook.balanceOf(
+            address(0xF62849F9A0B5Bf2913b396098F7c7019b51A820a)
+        );
         console.log("Reward points %d", rewardPoints);
-        
+        uint256 liquidity = poolManager.getLiquidity(key.toId());
 
-        // uint160 flags = uint160(1 << HOOKS_AFTER_ADD_LIQUIDITY_OFFSET);
-
-        // (, bytes32 salt) = HookMiner.find(
-        //     address(this),
-        //     flags,
-        //     type(CLVolatilePeriodRewardHook).creationCode,
-        //     abi.encode(poolManager, address(brevisProofMock))
-        // );
-        // uint256 liquidity = poolManager.getLiquidity(
-        //     key.toId(),
-        //     address(this),
-        //     -60,
-        //     60,
-        //     salt
-        // );
-        // console.log("Liquidity: %s", liquidity);
-        uint256 liquidity2 = poolManager.getLiquidity(key.toId());
-   
-        console.log("Liquidity2: %s", liquidity2);
-        // assertGt(rewardPoints, hook.baseRewardPoints());
+        console.log("Liquidity2: %s", liquidity);
+        assertGt(rewardPoints, hook.baseRewardPoints());
     }
 }
