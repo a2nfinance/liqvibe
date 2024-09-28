@@ -7,19 +7,31 @@ dotenv.config();
 const prover = new Prover('localhost:33247');
 const brevis = new Brevis('appsdkv2.brevis.network:9094');
 
-// Ether mainnet
-// const mainetProvider = new ethers.providers.JsonRpcProvider("https://eth.llamarpc.com");
-// const testnetProvider = new ethers.providers.JsonRpcProvider("https://rpc.sepolia.org");
-// const tokenPairPancakeV3PoolAddress = "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640";
-// const usdcWBNBPancakeV3PoolAddress = "0x35148b7baf354585a8f3283908bAECf9d14e24b6";
+// Ethereum mainnet
+// const getBlockMainnetAccessToken = process.env.GET_BLOCK_MAINNET_ACCESS_TOKEN;
+// const mainnetRPCBlockIo = `https://go.getblock.io/${getBlockMainnetAccessToken}`;
+// const mainetProvider = new ethers.providers.JsonRpcProvider(mainnetRPCBlockIo);
+// const tokenPairPancakeV3PoolAddressMainet = "0x6ca298d2983ab03aa1da7679389d955a4efee15c";
+// const mainnetChainId = 1;
+
+// Sepolia
+// const getBlockSepoliaAccessToken = process.env.GET_BLOCK_SEPOLIA_ACCESS_TOKEN;
+// const sepoliaRPCBlockIo = `https://go.getblock.io/${getBlockSepoliaAccessToken}`;
+// const testnetProvider = new ethers.providers.JsonRpcProvider(sepoliaRPCBlockIo);
+// const tokenPairPancakeV3PoolAddress = "0x35148b7baf354585a8f3283908bAECf9d14e24b6";
+// const testnetChainId = 11155111;
 
 // BSC mainnet
-// const mainetProvider = new ethers.providers.JsonRpcProvider("https://bsc-dataseed1.binance.org/");
-// const tokenPairPancakeV3PoolAddress = "0x85FAac652b707FDf6907EF726751087F9E0b6687";
-// const mainnetChainId = 56;
+const getBlockBSCMainnetAccessToken = process.env.GET_BLOCK_BSC_MAINNET_ACCESS_TOKEN;
+const bscMainnetRPCBlockIo = `https://go.getblock.io/${getBlockBSCMainnetAccessToken}`;
+const mainetProvider = new ethers.providers.JsonRpcProvider(bscMainnetRPCBlockIo);
+const tokenPairPancakeV3PoolAddressMainet = "0x85FAac652b707FDf6907EF726751087F9E0b6687";
+const mainnetChainId = 56;
 
 // BSC testnet
-const testnetProvider = new ethers.providers.JsonRpcProvider("https://bsc-testnet.public.blastapi.io");
+const getBlockBSCTestnetAccessToken = process.env.GET_BLOCK_BSC_TESNET_ACCESS_TOKEN;
+const bscTestnetRPCBlockIo = `https://go.getblock.io/${getBlockBSCTestnetAccessToken}`;
+const testnetProvider = new ethers.providers.JsonRpcProvider(bscTestnetRPCBlockIo);
 const tokenPairPancakeV3PoolAddress = "0x35148b7baf354585a8f3283908bAECf9d14e24b6";
 const testnetChainId = 97;
 

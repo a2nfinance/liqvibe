@@ -3,7 +3,8 @@
     "version": "0.0.1",
     "description": "Brevis application",
     "scripts": {
-        "start": "ts-node src/app.ts"
+        "use-storage": "ts-node src/using_storage.ts",
+        "use-events": "ts-node src/using_events.ts"
     },
     "author": "A2N Finance",
     "license": "MIT",
