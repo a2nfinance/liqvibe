@@ -1,4 +1,4 @@
-package volatile_event
+package volatile_receipt
 
 import (
 	"math/big"

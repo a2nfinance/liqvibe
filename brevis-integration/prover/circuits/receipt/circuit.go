@@ -1,4 +1,4 @@
-package volatile_event
+package volatile_receipt
 
 import (
 	"fmt"
@@ -18,20 +18,8 @@ func (c *AppCircuit) Define(api *sdk.CircuitAPI, in sdk.DataInput) error {
 	events := sdk.NewDataStream(api, in.Receipts)
 
 	// get a list of sqrtPriceX96 values.
-	pricePoints := sdk.Map(events, func(event sdk.Receipt) sdk.Uint248 {
-		// field.value is a bytes32 value
-		binary := api.Bytes32.ToBinary(event.Fields[0].Value)
-
-		// sqrPriceX96 variable is uint160.
-		// Exclude bit mask, get first bits from 0 to 159 of the storage value.
-		sqrtPricePart := binary[0:159]
-
-		// Explain:
-		// sqrtPriceX96 = sqrt(token0_price / token1_price) * 2**96
-		// token0_price = token0_decimal_value * 10**token0_decimals
-		// token1_price = token1_decimal_value * 10**token1_decimals
-		restoredSqrtPriceX96 := api.Uint248.FromBinary(sqrtPricePart...)
-		return restoredSqrtPriceX96
+	pricePoints := sdk.Map(events, func(receipt sdk.Receipt) sdk.Uint248 {
+		return api.ToUint248(receipt.Fields[0].Value)
 	})
 
 	// If the number of storage items is zero then Division by Zero error can happen later.
