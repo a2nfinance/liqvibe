@@ -40,7 +40,7 @@ Developers only need the chain configuration to test.
 ### 5. Challenges we ran into
 - **Challenge 01 - System architecture:** V4 Hooks and Brevis are entirely new technologies, and we had to spend over a week before writing the first line of code. We encountered numerous problems and unfamiliar errors with Go, Solidity, and local services. We decided to write small code blocks and test them before moving on to the next feature.
 
-- **Challenge 02 - Brevis Integration:** After successfully running all test scripts, we wanted to test on the real system. This proved challenging due to unresolved issues, such as invalid storage slots and invalid receipt info errors. Brevis provided support throughout the day to help resolve each problem.
+- **Challenge 02 - Brevis Integration:** After successfully running all test scripts, we wanted to test on the real system. This proved challenging due to issues, such as invalid storage slots and invalid receipt info errors. Brevis provided support throughout the day to help resolve each problem.
 
 
 
