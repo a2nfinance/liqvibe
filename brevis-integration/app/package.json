@@ -1,10 +1,11 @@
 {
     "name": "liqvibe-brevis-app",
-    "version": "0.0.1",
-    "description": "Brevis application",
+    "version": "1.0.0",
+    "description": "LiqVibe - Brevis application",
     "scripts": {
-        "use-storage": "ts-node src/using_storage.ts",
-        "use-events": "ts-node src/using_events.ts"
+        "use-receipt": "ts-node src/using_receipt.ts",
+        "use-receipt-prove-async": "ts-node src/use_receipt_with_prove_async.ts",
+        "use-storage": "ts-node src/using_storage.ts"
     },
     "author": "A2N Finance",
     "license": "MIT",

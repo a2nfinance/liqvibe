@@ -1,53 +1,23 @@
 import { Brevis, ErrCode, Field, ProofRequest, Prover, ReceiptData, StorageData } from 'brevis-sdk-typescript';
-import dotenv from "dotenv";
+
 import { ethers, Wallet } from 'ethers';
 import brevisRequestJsonABI from "./abis/brevisRequest.json";
 import pancakePoolV3JsonABI from "./abis/pancakePoolV3.json";
 import pancakeCLPoolManagerJsonABI from "./abis/pancakeCLPoolManger.json";
-dotenv.config();
+import { config } from "./config";
+
 
 const prover = new Prover('localhost:33247');
 const brevis = new Brevis('appsdkv2.brevis.network:9094');
 
-// Ethereum mainnet
-// const getBlockMainnetAccessToken = process.env.GET_BLOCK_MAINNET_ACCESS_TOKEN;
-// const mainnetRPCBlockIo = `https://go.getblock.io/${getBlockMainnetAccessToken}`;
-// const mainetProvider = new ethers.providers.JsonRpcProvider(mainnetRPCBlockIo);
-// const tokenPairPancakeV3PoolAddressMainet = "0x6ca298d2983ab03aa1da7679389d955a4efee15c";
-// const mainnetChainId = 1;
-
-// Sepolia
-// const getBlockSepoliaAccessToken = process.env.GET_BLOCK_SEPOLIA_ACCESS_TOKEN;
-// const sepoliaRPCBlockIo = `https://go.getblock.io/${getBlockSepoliaAccessToken}`;
-// const testnetProvider = new ethers.providers.JsonRpcProvider(sepoliaRPCBlockIo);
-// const tokenPairPancakeV3PoolAddress = "0x35148b7baf354585a8f3283908bAECf9d14e24b6";
-// const testnetChainId = 11155111;
-
-// BSC mainnet
-const getBlockBSCMainnetAccessToken = process.env.GET_BLOCK_BSC_MAINNET_ACCESS_TOKEN;
-const bscMainnetRPCBlockIo = `https://go.getblock.io/${getBlockBSCMainnetAccessToken}`;
-const mainetProvider = new ethers.providers.JsonRpcProvider(bscMainnetRPCBlockIo);
-const tokenPairPancakeV3PoolAddressMainet = "0x85FAac652b707FDf6907EF726751087F9E0b6687";
-const mainnetChainId = 56;
-
-// BSC testnet
-const getBlockBSCTestnetAccessToken = process.env.GET_BLOCK_BSC_TESNET_ACCESS_TOKEN;
-const bscTestnetRPCBlockIo = `https://go.getblock.io/${getBlockBSCTestnetAccessToken}`;
-const testnetProvider = new ethers.providers.JsonRpcProvider(bscTestnetRPCBlockIo);
-const tokenPairPancakeV3PoolAddress = "0x35148b7baf354585a8f3283908bAECf9d14e24b6";
-const testnetChainId = 97;
-
-// Contract addresses
-const brevisRequestContractAddress = "0xF7E9CB6b7A157c14BCB6E6bcf63c1C7c92E952f5"; // BrevisRequest contract on BSC testnet
-const callbackHookAddress = "0xd7e3E9EDd7f363A6649e78957edaA0B0a3482B11"; // CLVolatilePeriodRewardHookZK
-const pancakeV4CLPoolManagerAddress = "0x969D90aC74A1a5228b66440f8C8326a8dA47A5F9";
-
-const accountPrivateKey = process.env.ACCOUNT_PRIVATE_KEY; // Your account private key for  calling the sendRequest function of BrevisRequest contract
-
 
 // Init read and write contract
-const wallet = new Wallet(accountPrivateKey!, testnetProvider);
-const brevisRequestReadContract = new ethers.Contract(brevisRequestContractAddress, brevisRequestJsonABI, testnetProvider);
+const wallet = new Wallet(config.accountPrivateKey!, config.bsc.testnet.provider);
+const brevisRequestReadContract = new ethers.Contract(
+    config.bsc.testnet.brevisRequestContractAddress,
+    brevisRequestJsonABI,
+    config.bsc.testnet.provider
+);
 const brevisRequestWriteContract = brevisRequestReadContract.connect(wallet);
 
 // Logs settings
@@ -64,13 +34,6 @@ async function getAccount() {
     return address;
 }
 
-// Value: 0x19b47279256b2a23a1665c810c8d55a1758940ee09377d4f8d26497a3577dc83
-const pancakeV3SwapEventId = ethers.utils.id("Swap(address,address,int256,int256,uint160,uint128,int24,uint128,uint128)");
-
-// value: 0x04206ad2b7c0f463bff3dd4f33c5735b0f2957a351e4f79763a4fa9e775dd237
-const pancakeV4SwapEventId = ethers.utils.id("Swap(bytes32,address,int128,int128,uint160,uint128,int24,uint24,uint16)");
-
-const pancakeV3TransferEventId = ethers.utils.id("Transfer(address,address to,uint256)");
 
 // If you pay
 async function callSendRequest(provider: ethers.providers.JsonRpcProvider, brevisRes: SubmitResponse, refundee: string, queryOption: number) {
@@ -80,7 +43,7 @@ async function callSendRequest(provider: ethers.providers.JsonRpcProvider, brevi
         brevisRes.queryKey.nonce,
         refundee,
         [
-            callbackHookAddress,
+            config.bsc.testnet.callbackHookAddress,
             parseInt(brevisRes.fee)
         ],
         queryOption,
@@ -146,7 +109,7 @@ const getDataList = async (startingBlockNumber: number, contractAddress: string,
         // CLPoolManager
         poolContract = new ethers.Contract(contractAddress, pancakeCLPoolManagerJsonABI, provider);
     }
-    const eventId = useV4 ? pancakeV4SwapEventId : pancakeV3SwapEventId;
+    const eventId = useV4 ? config.pancakeV4SwapEventId : config.pancakeV3SwapEventId;
     const events = await poolContract.queryFilter(
         {
             address: contractAddress,
@@ -178,13 +141,14 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
     // Common errors: 
     // - invalid Storage Slot info
     // - unsupported blocknumber
-    console.log("Step 1: Get history of the transaction logs.")
+    console.log("Step 1: Get the history of the transaction logs.")
+    console.log('=========================================================');
     // To avoid getting empty data from recent block numbers.
     // Use block number of the latest event.
 
     const receiptDataList = await getDataList(
         latestBlockNumberOfEvent,
-        tokenPairPancakeV3PoolAddressMainet,
+        config.bsc.mainnet.pancakeV3PoolAddress,
         provider,
         false
     )
@@ -207,7 +171,7 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
         proofReq.addReceipt(receiptDataList[i], i)
     }
 
-
+    console.log('=========================================================');
     try {
         console.log("Step 2: Going to prove")
         const proofRes = await prover.prove(proofReq);
@@ -242,8 +206,8 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
         const brevisRes: SubmitResponse = await brevis.submit(
             proofReq,
             proofRes,
-            mainnetChainId,
-            testnetChainId,
+            config.bsc.mainnet.chainId,
+            config.bsc.testnet.chainId,
             // ZK-MODE
             queryOption,
             // No need API key for BSC testnet.
@@ -254,14 +218,18 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
 
         console.log("Step 4: Pay for sending request");
         // We use destination chain ID is testnet, so we must pay 0.0001 main token to fullfilled the request on testnet 
-        await callSendRequest(testnetProvider, brevisRes, refundee, queryOption);
+        await callSendRequest(config.bsc.testnet.provider, brevisRes, refundee, queryOption);
+
+
+        console.log("Step 5: Check the query key for final transaction");
+        console.log('=========================================================');
         // Waiting for the result
         // The system do two steps:
         // - Checking sendRequest function is called.
         // - Waiting for the final TX. If there is no final transaction found, please contact Brevis on Brevis' telegram channel.
-        let waitRes = await brevis.wait(brevisRes.queryKey, testnetChainId);
+        let waitRes = await brevis.wait(brevisRes.queryKey, config.bsc.testnet.chainId);
         if (waitRes.success) {
-            console.log('Brevis res', brevisRes);
+            console.log('=========================================================');
             console.log('Final tx', waitRes.tx);
         }
     } catch (err) {
@@ -273,12 +241,12 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
 async function main(useLoop: boolean) {
     if (useLoop) {
         while (1) {
-            await sendRequest(mainetProvider, prover, brevis)
+            await sendRequest(config.bsc.mainnet.provider, prover, brevis)
             // Next process will do after 10 minutes.
             await new Promise(r => setTimeout(r, 10 * 60 * 1000));
         }
     }
-    sendRequest(mainetProvider, prover, brevis);
+    sendRequest(config.bsc.mainnet.provider, prover, brevis);
 
 }
 
