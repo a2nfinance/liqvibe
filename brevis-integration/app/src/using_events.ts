@@ -39,8 +39,8 @@ const testnetChainId = 97;
 
 // Contract addresses
 const brevisRequestContractAddress = "0xF7E9CB6b7A157c14BCB6E6bcf63c1C7c92E952f5"; // BrevisRequest contract on BSC testnet
-const callbackHookAddress = "0x5Df37c7f0d9a95641Ec9C39c3874F2F279f0F310"; // CLVolatilePeriodRewardHook
-const pancakeV4CLPoolManagerAddress="0x969D90aC74A1a5228b66440f8C8326a8dA47A5F9";
+const callbackHookAddress = "0xd7e3E9EDd7f363A6649e78957edaA0B0a3482B11"; // CLVolatilePeriodRewardHookZK
+const pancakeV4CLPoolManagerAddress = "0x969D90aC74A1a5228b66440f8C8326a8dA47A5F9";
 
 const accountPrivateKey = process.env.ACCOUNT_PRIVATE_KEY; // Your account private key for  calling the sendRequest function of BrevisRequest contract
 
@@ -51,8 +51,8 @@ const brevisRequestReadContract = new ethers.Contract(brevisRequestContractAddre
 const brevisRequestWriteContract = brevisRequestReadContract.connect(wallet);
 
 // Logs settings
-const latestBlockNumberOfEvent = 20849937 - 800;
-const step = 300;
+const step = 2;
+const latestBlockNumberOfEvent = 42669436 - 800;
 
 interface SubmitResponse {
     queryKey: any; // Must be QueryKey
@@ -69,7 +69,11 @@ const pancakeV3SwapEventId = ethers.utils.id("Swap(address,address,int256,int256
 
 // value: 0x04206ad2b7c0f463bff3dd4f33c5735b0f2957a351e4f79763a4fa9e775dd237
 const pancakeV4SwapEventId = ethers.utils.id("Swap(bytes32,address,int128,int128,uint160,uint128,int24,uint24,uint16)");
-async function callSendRequest(provider: ethers.providers.JsonRpcProvider, brevisRes: SubmitResponse, refundee: string, zkMode: number) {
+
+const pancakeV3TransferEventId = ethers.utils.id("Transfer(address,address to,uint256)");
+
+// If you pay
+async function callSendRequest(provider: ethers.providers.JsonRpcProvider, brevisRes: SubmitResponse, refundee: string, queryOption: number) {
     let nonce = await wallet.getTransactionCount();
     const txUnsigned = await brevisRequestWriteContract.sendRequest(
         brevisRes.queryKey.query_hash,
@@ -79,7 +83,7 @@ async function callSendRequest(provider: ethers.providers.JsonRpcProvider, brevi
             callbackHookAddress,
             parseInt(brevisRes.fee)
         ],
-        zkMode,
+        queryOption,
         {
             value: ethers.utils.parseEther("0.0001"),
             gasLimit: 20000000,
@@ -96,30 +100,40 @@ async function callSendRequest(provider: ethers.providers.JsonRpcProvider, brevi
     }
 }
 
-const getReceiptData = (event: ethers.Event, eventId: string) => {
+const getReceiptData = async (event: ethers.Event, eventId: string) => {
+    let transactionReceipt: ethers.providers.TransactionReceipt = await event.getTransactionReceipt();
+    let logs: ethers.providers.Log[] = transactionReceipt.logs;
+    let relativeSwapIndex: number = logs.findIndex(l => l.logIndex === event.logIndex);
     let receiptData: ReceiptData = new ReceiptData({
         block_num: event.blockNumber,
         tx_hash: event.transactionHash,
         fields: [
             new Field({
                 contract: event.address,
-                log_index: event.logIndex,
+                log_index: relativeSwapIndex,
                 event_id: eventId,
                 is_topic: false,
-                field_index: 0,
+                field_index: 2,
                 value: event.args?.["sqrtPriceX96"]._hex
             })
         ]
     })
 
     console.log({
-        contract: event.address,
-        log_index: event.logIndex,
-        event_id: eventId,
-        is_topic: false,
-        field_index: 0,
-        value: event.args?.["sqrtPriceX96"]._hex
+        block_num: event.blockNumber,
+        tx_hash: event.transactionHash,
+        fields: [
+            {
+                contract: event.address,
+                log_index: relativeSwapIndex,
+                event_id: eventId,
+                is_topic: false,
+                field_index: 2,
+                value: event.args?.["sqrtPriceX96"]._hex
+            }
+        ]
     })
+
     return receiptData;
 }
 
@@ -144,9 +158,11 @@ const getDataList = async (startingBlockNumber: number, contractAddress: string,
         currentBlock
     );
 
-    list = events.map((event, index) => {
-        return getReceiptData(event, eventId);
-    })
+    for (let i = 0; i < events.length; i++) {
+        let receiptData = await getReceiptData(events[i], eventId);
+        list.push(receiptData);
+    }
+
 
     return list;
 }
@@ -165,7 +181,7 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
     console.log("Step 1: Get history of the transaction logs.")
     // To avoid getting empty data from recent block numbers.
     // Use block number of the latest event.
- 
+
     const receiptDataList = await getDataList(
         latestBlockNumberOfEvent,
         tokenPairPancakeV3PoolAddressMainet,
@@ -191,7 +207,7 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
         proofReq.addReceipt(receiptDataList[i], i)
     }
 
- 
+
     try {
         console.log("Step 2: Going to prove")
         const proofRes = await prover.prove(proofReq);
@@ -219,17 +235,17 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
 
         // 0: ZK-MODE
         // 1: OP-MODE
-        // If you select zkMode = 1, please update your hook smart contracts by calling setBrevisOpConfig.
+        // If you select queryOption = 1, please update your hook smart contracts by calling setBrevisOpConfig.
         // _challengeWindow: 0: POS (proof of stake), 2**64 - 1: disable optimistic result.
         // _sigOption: bit 0 is bvn, bit 1 is avs.
-        let zkMode = 0;
+        let queryOption = 0;
         const brevisRes: SubmitResponse = await brevis.submit(
             proofReq,
             proofRes,
             mainnetChainId,
             testnetChainId,
             // ZK-MODE
-            zkMode,
+            queryOption,
             // No need API key for BSC testnet.
             "",
             // You hook callback address
@@ -237,8 +253,8 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
         );
 
         console.log("Step 4: Pay for sending request");
-        // Pay 0.0001 main token to fullfilled the request.
-        // await callSendRequest(provider, brevisRes, refundee, zkMode);
+        // We use destination chain ID is testnet, so we must pay 0.0001 main token to fullfilled the request on testnet 
+        await callSendRequest(testnetProvider, brevisRes, refundee, queryOption);
         // Waiting for the result
         // The system do two steps:
         // - Checking sendRequest function is called.

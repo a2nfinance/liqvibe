@@ -37,7 +37,7 @@ const testnetChainId = 97;
 
 // Contract addresses
 const brevisRequestContractAddress = "0xF7E9CB6b7A157c14BCB6E6bcf63c1C7c92E952f5"; // BrevisRequest contract on BSC testnet
-const callbackHookAddress = "0x5Df37c7f0d9a95641Ec9C39c3874F2F279f0F310"; // CLVolatilePeriodRewardHook
+const callbackHookAddress = "0xd7e3E9EDd7f363A6649e78957edaA0B0a3482B11"; // CLVolatilePeriodRewardHookZK
 
 const accountPrivateKey = process.env.ACCOUNT_PRIVATE_KEY; // Your account private key for  calling the sendRequest function of BrevisRequest contract
 
@@ -171,17 +171,17 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
 
         // 0: ZK-MODE
         // 1: OP-MODE
-        // If you select zkMode = 1, please update your hook smart contracts by calling setBrevisOpConfig.
+        // If you select queryOption = 1, please update your hook smart contracts by calling setBrevisOpConfig.
         // _challengeWindow: 0: POS (proof of stake), 2**64 - 1: disable optimistic result.
         // _sigOption: bit 0 is bvn, bit 1 is avs.
-        let zkMode = 0;
+        let queryOption = 0;
         const brevisRes: SubmitResponse = await brevis.submit(
             proofReq,
             proofRes,
             testnetChainId,
             testnetChainId,
             // ZK-MODE
-            zkMode,
+            queryOption,
             // No need API key for BSC testnet.
             "",
             // You hook callback address
@@ -190,7 +190,9 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
 
         console.log("Step 4: Pay for sending request");
         // Pay 0.0001 main token to fullfilled the request.
-        await callSendRequest(provider, brevisRes, refundee, zkMode);
+        await callSendRequest(provider, brevisRes, refundee, queryOption);
+
+        console.log("Step 5: Check the query key for final transaction");
         // Waiting for the result
         // The system do two steps:
         // - Checking sendRequest function is called.
