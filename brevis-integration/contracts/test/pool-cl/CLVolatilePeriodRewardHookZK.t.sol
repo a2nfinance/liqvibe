@@ -8,7 +8,7 @@ import {Currency} from "pancake-v4-core/src/types/Currency.sol";
 import {PoolKey} from "pancake-v4-core/src/types/PoolKey.sol";
 import {Hooks} from "pancake-v4-core/src/libraries/Hooks.sol";
 import {CLPoolParametersHelper} from "pancake-v4-core/src/pool-cl/libraries/CLPoolParametersHelper.sol";
-import {CLVolatilePeriodRewardHook} from "../../src/pool-cl/CLVolatilePeriodRewardHook.sol";
+import {CLVolatilePeriodRewardHookZK} from "../../src/pool-cl/CLVolatilePeriodRewardHookZK.sol";
 import {CLTestUtils} from "./utils/CLTestUtils.sol";
 import {CLPoolParametersHelper} from "pancake-v4-core/src/pool-cl/libraries/CLPoolParametersHelper.sol";
 import {PoolIdLibrary} from "pancake-v4-core/src/types/PoolId.sol";
@@ -18,11 +18,11 @@ import {console} from "forge-std/console.sol";
 import {HookMiner} from "./utils/HookMiner.sol";
 import {HOOKS_AFTER_ADD_LIQUIDITY_OFFSET} from "pancake-v4-core/src/pool-cl/interfaces/ICLHooks.sol";
 
-contract CLVolatilePeriodRewardHookTest is Test, CLTestUtils {
+contract CLVolatilePeriodRewardHookZKTest is Test, CLTestUtils {
     using PoolIdLibrary for PoolKey;
     using CLPoolParametersHelper for bytes32;
 
-    CLVolatilePeriodRewardHook hook;
+    CLVolatilePeriodRewardHookZK hook;
     Currency currency0;
     Currency currency1;
     PoolKey key;
@@ -34,7 +34,7 @@ contract CLVolatilePeriodRewardHookTest is Test, CLTestUtils {
     function setUp() public {
         (currency0, currency1) = deployContractsWithTokens();
         brevisProofMock = new MockBrevisProof();
-        hook = new CLVolatilePeriodRewardHook(
+        hook = new CLVolatilePeriodRewardHookZK(
             poolManager,
             address(brevisProofMock),
             "LV Reward Token",
