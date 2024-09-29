@@ -16,6 +16,8 @@ const brevisRequestReadContract = new ethers.Contract(
     config.bsc.testnet.provider
 );
 const brevisRequestWriteContract = brevisRequestReadContract.connect(wallet);
+
+
 // Getting storage data settings.
 const numberOfDataItems = 2;
 const step = 5;

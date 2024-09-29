@@ -10,7 +10,7 @@ type AppCircuit struct{}
 
 // Limited 100 storage slots.
 func (c *AppCircuit) Allocate() (maxReceipts, maxStorage, maxTransactions int) {
-	return 0, 100, 0
+	return 0, 50, 0
 }
 
 func (c *AppCircuit) Define(api *sdk.CircuitAPI, in sdk.DataInput) error {
