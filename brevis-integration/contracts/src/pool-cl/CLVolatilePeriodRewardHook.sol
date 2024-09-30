@@ -133,7 +133,6 @@ contract CLVolatilePeriodRewardHook is CLBaseHook, BrevisApp, Ownable, ERC20 {
             rewardPoints = baseRewardPoints;
         } else {
             uint256 absOfPriceSubMean = _abs(sqrtPriceX96, mean);
-            // console.log("SQRTPRICEX96:%d, MEAN: %d", sqrtPriceX96, mean);
             // Average volatile: sqrtPriceX96 is in two limited bands.
             // rewardPoints = baseRewardPoints + alpha * sqrt(delta) * (|price - mean| / sigma)
             if (
@@ -146,7 +145,6 @@ contract CLVolatilePeriodRewardHook is CLBaseHook, BrevisApp, Ownable, ERC20 {
                         _sqrt(deltaAmount0) *
                         ((absOfPriceSubMean * DENOMINATOR) / sigma)) /
                     (DENOMINATOR * DENOMINATOR);
-                // console.log("Calculated params:%d %d", _sqrt(deltaAmount0), (absOfPriceSubMean * DENOMINATOR) / sigma);
             } else {
                 // High volatile: sqrtPriceX96 is out out two bands
                 rewardPoints =
@@ -155,24 +153,19 @@ contract CLVolatilePeriodRewardHook is CLBaseHook, BrevisApp, Ownable, ERC20 {
                         _sqrt(deltaAmount0) *
                         ((absOfPriceSubMean * DENOMINATOR) / sigma)) /
                     (DENOMINATOR * DENOMINATOR);
-                //  console.log("Calculated params:%d %d", _sqrt(deltaAmount0), (absOfPriceSubMean * DENOMINATOR) / sigma);
             }
         }
 
         if (rewardPoints > 0) {
-            // console.log("Calculated reward points:%d", rewardPoints);
-            // console.log("Sender %s:", sender);
             _mint(sender, rewardPoints);
         }
     }
 
-    // In app circuit we have:
-    // api.OutputUint(248, vol)
     function _decodeOutput(
         bytes calldata o
     ) internal pure returns (uint256, uint256) {
-        uint248 m = uint248(bytes31(o[0:31])); // lowerPrice is output as a uint248 (31 bytes)
-        uint248 s = uint248(bytes31(o[31:62]));
+        uint248 m = uint248(bytes31(o[0:31])); // mean is output as a uint248 (31 bytes)
+        uint248 s = uint248(bytes31(o[31:62]));// sigma is output as a uint248 (31 bytes)
         return (uint256(m), uint256(s));
     }
 
@@ -224,7 +217,7 @@ contract CLVolatilePeriodRewardHook is CLBaseHook, BrevisApp, Ownable, ERC20 {
 
     // Init mean & sigma of sqrtPriceX96
     function initMeanSigma(uint256 _mean, uint256 _sigma) external onlyOwner {
-        mean = mean;
-        _sigma = sigma;
+        mean = _mean;
+        sigma = _sigma;
     }
 }

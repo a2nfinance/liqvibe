@@ -108,9 +108,8 @@ contract CLVolatilePeriodRewardHookZK is CLBaseHook, BrevisAppZkOnly, Ownable, E
         // our designated verifying key. This proves that the _circuitOutput is authentic
         require(vkHash == _vkHash, "invalid vk");
 
-        (uint256 m, uint256 s) = decodeOutput(_circuitOutput);
-        mean = m;
-        sigma = s;
+        (mean, sigma) = decodeOutput(_circuitOutput);
+
         emit VolatilityUpdated(mean, sigma);
     }
 
@@ -124,7 +123,6 @@ contract CLVolatilePeriodRewardHookZK is CLBaseHook, BrevisAppZkOnly, Ownable, E
             rewardPoints = baseRewardPoints;
         } else {
             uint256 absOfPriceSubMean = _abs(sqrtPriceX96, mean);
-            // console.log("SQRTPRICEX96:%d, MEAN: %d", sqrtPriceX96, mean);
             // Average volatile: sqrtPriceX96 is in two limited bands.
             // rewardPoints = baseRewardPoints + alpha * sqrt(delta) * (|price - mean| / sigma)
             if (
@@ -137,7 +135,6 @@ contract CLVolatilePeriodRewardHookZK is CLBaseHook, BrevisAppZkOnly, Ownable, E
                         _sqrt(deltaAmount0) *
                         ((absOfPriceSubMean * DENOMINATOR) / sigma)) /
                     (DENOMINATOR * DENOMINATOR);
-                // console.log("Calculated params:%d %d", _sqrt(deltaAmount0), (absOfPriceSubMean * DENOMINATOR) / sigma);
             } else {
                 // High volatile: sqrtPriceX96 is out out two bands
                 rewardPoints =
@@ -146,24 +143,19 @@ contract CLVolatilePeriodRewardHookZK is CLBaseHook, BrevisAppZkOnly, Ownable, E
                         _sqrt(deltaAmount0) *
                         ((absOfPriceSubMean * DENOMINATOR) / sigma)) /
                     (DENOMINATOR * DENOMINATOR);
-                //  console.log("Calculated params:%d %d", _sqrt(deltaAmount0), (absOfPriceSubMean * DENOMINATOR) / sigma);
             }
         }
 
         if (rewardPoints > 0) {
-            // console.log("Calculated reward points:%d", rewardPoints);
-            // console.log("Sender %s:", sender);
             _mint(sender, rewardPoints);
         }
     }
 
-    // In app circuit we have:
-    // api.OutputUint(248, vol)
     function decodeOutput(
         bytes calldata o
     ) internal pure returns (uint256, uint256) {
-        uint248 m = uint248(bytes31(o[0:31])); // lowerPrice is output as a uint248 (31 bytes)
-        uint248 s = uint248(bytes31(o[31:62]));
+        uint248 m = uint248(bytes31(o[0:31])); // mean is output as a uint248 (31 bytes)
+        uint248 s = uint248(bytes31(o[31:62])); // sigma is output as a uint248 (31 bytes)
         return (uint256(m), uint256(s));
     }
 
