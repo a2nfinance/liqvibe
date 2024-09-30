@@ -26,7 +26,7 @@ LiqVibe uses a formula to calculate the reward token amount when a user adds liq
 
 ### 4. Coding
 
-LiqVibe references many open-source and outdated examples, most of which are not integrated with Brevis or use incorrect RPC providers.
+LiqVibe references many open-source and outdated examples, most of which do not work with the recent Brevis SDK version or use incorrect RPC providers.
 
 LiqVibe's source code has been reorganized, reducing bugs and supporting more options to test with other EVM blockchains and V3/V4 smart contracts.
 
