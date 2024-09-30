@@ -40,7 +40,7 @@ async function callSendRequest(provider: ethers.providers.JsonRpcProvider, brevi
         brevisRes.queryKey.nonce,
         refundee,
         [
-            config.bsc.testnet.callbackHookAddress,
+            config.bsc.testnet.callbackHookOPAddress,
             parseInt(brevisRes.fee)
         ],
         zkMode,
@@ -115,7 +115,7 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
     let latestBlock = await provider.getBlockNumber();
     const storageDataList = await getDataList(
         numberOfDataItems,
-        latestBlock,
+        latestBlock - 100,
         config.bsc.mainnet.pancakeV3PoolAddress,
         0,
         provider
@@ -155,7 +155,7 @@ const sendRequest = async (provider: ethers.providers.JsonRpcProvider, prover: P
         // If you select queryOption = 1, please update your hook smart contracts by calling setBrevisOpConfig.
         // _challengeWindow: 0: POS (proof of stake), 2**64 - 1: disable optimistic result.
         // _sigOption: bit 0 is bvn, bit 1 is avs.
-        let queryOption = 0;
+        let queryOption = 1;
         const brevisRes: SubmitResponse = await brevis.submit(
             proofReq,
             proofRes,

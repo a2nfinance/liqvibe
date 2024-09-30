@@ -29,6 +29,7 @@ export const config = {
             pancakeV4CLPoolManagerAddress: "",
             brevisRequestContractAddress: "",
             callbackHookAddress: "",
+            callbackHookOPAddress: "",
             provider: bscMainnetProvider,
             pancakeV3PoolAddress: "0x85FAac652b707FDf6907EF726751087F9E0b6687",
             chainId: 56
@@ -37,6 +38,7 @@ export const config = {
             pancakeV4CLPoolManagerAddress: "0x969D90aC74A1a5228b66440f8C8326a8dA47A5F9",
             brevisRequestContractAddress: "0xF7E9CB6b7A157c14BCB6E6bcf63c1C7c92E952f5",
             callbackHookAddress: "0xd7e3E9EDd7f363A6649e78957edaA0B0a3482B11",
+            callbackHookOPAddress: "0x05eb8079574D2f3284D98Ec09F90bb83006B59B8",
             provider: bscTestnetProvider,
             pancakeV3PoolAddress: "0x35148b7baf354585a8f3283908bAECf9d14e24b6",
             chainId: 97
@@ -46,6 +48,7 @@ export const config = {
         mainnet: {
             pancakeV4CLPoolManagerAddress: "",
             brevisRequestContractAddress: "",
+            callbackHookOPAddress: "",
             callbackHookAddress: "",
             provider: mainnetProvider,
             pancakeV3PoolAddress: "0x6ca298d2983ab03aa1da7679389d955a4efee15c",
@@ -54,6 +57,7 @@ export const config = {
         testnet: {
             pancakeV4CLPoolManagerAddress: "",
             brevisRequestContractAddress: "",
+            callbackHookOPAddress: "",
             callbackHookAddress: "",
             provider: sepoliaProvider,
             pancakeV3PoolAddress: "0x35148b7baf354585a8f3283908bAECf9d14e24b6",
