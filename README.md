@@ -55,9 +55,11 @@ To run script test:
 To deploy and verify the CLVolatilePeriodRewardHookZK contract:
 - ```forge script --chain bsc-testnet --sender your_account_address_here script/CLHookScript.s.sol:CLHookScript --rpc-url $BSC_TESTNET_RPC_URL --broadcast --verify -vvvv```
 
-Please save the contract address for later use.
+To deploy and verify the CLVolatilePeriodRewardHookZK contract:
 
-If you want to deploy the CLVolatilePeriodRewardHook, please change the [deployment script file](/brevis-integration/contracts/script/CLHookScript.s.sol).
+- ```forge script --chain bsc-testnet --sender your_account_address_here script/CLHookOPScript.s.sol:CLHookOPScript --rpc-url $BSC_TESTNET_RPC_URL --broadcast --verify -vvvv```
+
+Please save the contract address for later use.
 
 ### Prover
 We have two main circuits:
@@ -70,7 +72,7 @@ For testing:
 - ```cd brevis-integration/prover/circuits/storage/; go test```
 - ```cd brevis-integration/prover/circuits/receipt/; go test```
 
-## Run full workflow
+## Run the full workflow.
 
 ### Start prover
 
